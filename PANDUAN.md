@@ -13,6 +13,8 @@ Satu aplikasi admin untuk semua aplikasi Zui: Zui System dan ZUI KONTRAKTOR seka
 
 ## Firestore Rules
 
+- **Pembaruan 16 Okt 2026**: Zui System kini punya DuitNow QR untuk pelanggan Ringgit. Terbitkan ulang `firestore.rules` dari paket Zui System terbaru (kolom `duitnow`, `catatanMY`). Zui Admin lama di `zuisystem.com/admin/` sudah dihapus.
+
 - **Zui System**: tidak perlu diubah. Fungsi `sa()` sudah mengizinkan `admin.zuisystem@gmail.com`.
 - **ZUI KONTRAKTOR**: pakai `firestore.rules` dari ZUI KONTRAKTOR versi 13 (chat Langganan dan mata uang di permintaan bayar). Salin seluruh isinya ke Firebase Console project **kontraktor-zui** → Firestore Database → Rules → Publish. Fungsi `superAdmin()` tetap dipakai Zui Admin.
 

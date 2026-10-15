@@ -259,7 +259,7 @@ const SYS={
   if(s&&s>=Date.UTC(2090,0,1)&&/gratis/i.test(L.paket||''))return{kind:'free',plan:L.paket,until:0};
   if(now<end)return{kind:s?'paid':'trial',plan:s?(L.paket||'Langganan'):'Uji coba',until:end};return{kind:'expired',plan:s?(L.paket||'Langganan'):'Uji coba',until:end}},
  async load(a){const db=a.fs;const [cs,rs,bp]=await Promise.all([db.collection('perusahaan').get(),db.collection('resit').get(),db.collection('sistem').doc('bayar').get()]);
-  a.pay=bp.exists?bp.data():null;a.qr=null;a.qp=null;
+  a.pay=bp.exists?bp.data():null;a.qr=null;a.qp=null;a.dn=null;
   a.co=await Promise.all(cs.docs.map(async d=>{const x=d.data();let em='';try{if(x.owner){const m=await db.collection('perusahaan').doc(d.id).collection('anggota').doc(x.owner).get();em=m.exists?(m.data().email||''):''}}catch(e){}
    const c={a,id:d.id,name:x.nama||'(tanpa nama)',email:em,created:+x.ts||0,raw:x};return Object.assign(c,SYS.state(c))}));
   /* pemasukan: catatan resit/{ref}; satu aktivasi bisa menulis beberapa ref dengan cid+ts sama. Jumlah < 1000 dianggap Ringgit/Dolar dan tidak dihitung. */
@@ -282,7 +282,7 @@ const SYS={
   <div class="act" style="margin-top:14px"><button class="b" data-a="km" data-i="${a.i}" data-id="${E(c.id)}">Buka percakapan</button></div>
   <div class="btn"><button class="b" data-a="close">Tutup</button></div>`)},
  async setL(a,c,v){await a.fs.collection('perusahaan').doc(c.id).update({langganan:v===null?firebase.firestore.FieldValue.delete():v})},
- payForm(a){const b=a.pay||{},P=bpk(a);if(a.qr==null)a.qr=b.qris||'';if(a.qp==null){a.qp={};(b.paket||[]).forEach(p=>{if(p.qr)a.qp[p.k]=p.qr})}
+ payForm(a){const b=a.pay||{},P=bpk(a);if(a.qr==null)a.qr=b.qris||'';if(a.dn==null)a.dn=b.duitnow||'';if(a.qp==null){a.qp={};(b.paket||[]).forEach(p=>{if(p.qr)a.qp[p.k]=p.qr})}
   const f=(id,l,v,x)=>`<label class="fl">${l}<input class="ni" id="${id}" value="${E(v||'')}" ${x||''}></label>`;
   return`<p class="m">Tampil di layar Langganan pelanggan ${E(a.nama)}. Kosongkan yang tidak dipakai.</p>
   ${f('bu','Nama usaha',b.usaha,'maxlength="60"')}<div class="g2">${f('bb','Bank',b.bank,'maxlength="40"')}${f('br','No. rekening',b.norek,'maxlength="40" inputmode="numeric"')}</div>
@@ -291,13 +291,17 @@ const SYS={
   ${f('bc','Catatan pembayaran',b.catatan,'maxlength="200"')}${f('bp','Teks promo',b.promo,'maxlength="160"')}
   <label class="fl">Promo berlaku sampai (kosong = tanpa batas)<input class="ni" id="bs" type="date" value="${E(b.promoSampai||'')}"></label>
   <div class="fl">QRIS umum</div><div class="qri">${a.qr?`<img src="${E(a.qr)}" alt="QRIS">`:'<span class="m">Belum ada QRIS.</span>'}<label class="b" style="cursor:pointer">Pilih gambar<input type="file" accept="image/*" data-a="yqr" data-i="${a.i}" hidden></label>${a.qr?`<button class="b" data-a="yqx" data-i="${a.i}">Hapus</button>`:''}</div>
+  <div class="fl">DuitNow QR (untuk pelanggan bermata uang Ringgit)</div><div class="qri">${a.dn?`<img src="${E(a.dn)}" alt="DuitNow QR">`:'<span class="m">Belum ada DuitNow QR.</span>'}<label class="b" style="cursor:pointer">Pilih gambar<input type="file" accept="image/*" data-a="ydn" data-i="${a.i}" hidden></label>${a.dn?`<button class="b" data-a="ydx" data-i="${a.i}">Hapus</button>`:''}</div>
+  ${f('bcm','Catatan pembayaran Ringgit (DuitNow)',b.catatanMY,'maxlength="200"')}
+  <p class="m">Perusahaan bermata uang Ringgit melihat DuitNow QR; Rupiah dan Dolar melihat QRIS dan rekening.</p>
   ${P.map((p,i)=>`<div class="card"><b>${E(p.nama)}</b><div class="qri">${a.qp[p.k]?`<img src="${E(a.qp[p.k])}" alt="QRIS ${E(p.nama)}">`:''}<label class="b" style="cursor:pointer">QRIS paket ini (jumlah terkunci)<input type="file" accept="image/*" data-a="yqr2" data-i="${a.i}" data-k="${E(p.k)}" hidden></label>${a.qp[p.k]?`<button class="b" data-a="yqx2" data-i="${a.i}" data-k="${E(p.k)}">Hapus</button>`:''}</div>
    <div class="g2">${['IDR','MYR','USD'].map(cu=>f(`yn${i}${cu}`,'Normal '+cu,(p.n||{})[cu]||0,'inputmode="decimal"')+f(`yp${i}${cu}`,'Promo '+cu,(p.p||{})[cu]||0,'inputmode="decimal"')).join('')}</div></div>`).join('')}
   <div class="act" style="margin-top:14px"><button class="b pri" data-a="ypsave" data-i="${a.i}">Simpan pembayaran</button></div>`},
  async paySave(a){const g=id=>($('#'+id).value||'').trim(),P=bpk(a).map((p,i)=>{const n={},q={};for(const cu of ['IDR','MYR','USD']){n[cu]=Math.max(0,num(g('yn'+i+cu)));q[cu]=Math.max(0,num(g('yp'+i+cu)))}const it={k:p.k,nama:p.nama,bln:+p.bln||1,n,p:q};if(a.qp[p.k])it.qr=a.qp[p.k];return it});
   for(const p of P)for(const cu of ['IDR','MYR','USD'])if(p.p[cu]&&p.p[cu]>=p.n[cu])throw new Error('Harga promo '+p.nama+' ('+cu+') harus lebih rendah dari harga normal');
-  const o={usaha:g('bu'),bank:g('bb'),norek:g('br'),an:g('bn'),wa:g('bw'),catatan:g('bc'),jam:g('bj'),waktu:g('bk'),promo:g('bp'),promoSampai:$('#bs').value||'',qris:a.qr||'',paket:P,ts:Date.now()};
+  const o={usaha:g('bu'),bank:g('bb'),norek:g('br'),an:g('bn'),wa:g('bw'),catatan:g('bc'),jam:g('bj'),waktu:g('bk'),promo:g('bp'),promoSampai:$('#bs').value||'',qris:a.qr||'',duitnow:a.dn||'',catatanMY:g('bcm'),paket:P,ts:Date.now()};
   if(a.pay&&typeof a.pay.kode==='boolean')o.kode=a.pay.kode;
+  if(JSON.stringify(o).length>980000)throw new Error('Gambar QR terlalu besar (batas 1 MB per dokumen). Hapus QRIS per paket yang tidak dipakai atau pakai gambar QR yang lebih kecil.');
   await a.fs.collection('sistem').doc('bayar').set(o);a.pay=o}
 };
 const ADP={standar:STD,zuisystem:SYS};
@@ -504,6 +508,7 @@ const ACT={
  sqx2:el=>{const a=appOf(el.dataset.i);a.qr2='';rHg()},
  yqx:el=>{const a=appOf(el.dataset.i);a.qr='';rHg()},
  yqx2:el=>{const a=appOf(el.dataset.i);delete a.qp[el.dataset.k];rHg()},
+ ydx:el=>{const a=appOf(el.dataset.i);a.dn='';rHg()},
  spsave:el=>{const a=appOf(el.dataset.i);busy(el,1);STD.paySave(a).then(()=>{toast('Harga & pembayaran disimpan');rHg()}).catch(e=>toast(fbe(e))).finally(()=>busy(el,0))},
  ypsave:el=>{const a=appOf(el.dataset.i);busy(el,1);SYS.paySave(a).then(()=>{toast('Pembayaran disimpan');rHg()}).catch(e=>toast(fbe(e))).finally(()=>busy(el,0))},
  pin:el=>pinDlg(+el.dataset.v),pinsave:el=>pinSave(+el.dataset.v),lock:()=>pinShow(),pinforgot:()=>{pinClr();LKON=false;$('#lk').classList.remove('on');logout()}
@@ -512,7 +517,8 @@ const FILE={
  sqr:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qr=await shrink(f,700,400000);rHg()}catch(e){toast(e.message)}},
  sqr2:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qr2=await shrink(f,700,400000);rHg()}catch(e){toast(e.message)}},
  yqr:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qr=await shrink(f,520,280000);rHg()}catch(e){toast(e.message)}},
- yqr2:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qp[el.dataset.k]=await shrink(f,520,180000);rHg()}catch(e){toast(e.message)}}
+ yqr2:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qp[el.dataset.k]=await shrink(f,520,150000);rHg()}catch(e){toast(e.message)}},
+ ydn:async(el,f)=>{const a=appOf(el.dataset.i);try{a.dn=await shrink(f,520,220000);rHg()}catch(e){toast(e.message)}}
 };
 let REJ=null;
 function rejDlg(q){REJ=q;dlg(`<h2>Tolak pembayaran</h2><div class="m">${dotOf(q.a)} · ${E(q.name)}</div><label>Alasan (dilihat pelanggan)<input id="rjn" maxlength="200" placeholder="Contoh: dana belum masuk, mohon kirim ulang bukti"></label><div class="btn"><button class="b" data-a="close">Batal</button><button class="b pri" style="background:var(--bad)" data-a="rejgo">Tolak</button></div>`)}
