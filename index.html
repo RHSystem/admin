@@ -152,7 +152,7 @@ dialog::backdrop{background:rgba(5,8,10,.6)}dialog h2{margin:0 0 4px;font:600 20
 /* =================== dasar =================== */
 const $=s=>document.querySelector(s);
 const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const CF=window.ZUI_ADMIN||{},ADMIN=String(CF.adminEmail||'admin.zuisystem@gmail.com').trim().toLowerCase(),DAY=864e5,VER='1.1';
+const CF=window.ZUI_ADMIN||{},ADMIN=String(CF.adminEmail||'admin.zuisystem@gmail.com').trim().toLowerCase(),DAY=864e5,VER='1.2';
 const APPS=(CF.apps||[]).filter(a=>a&&a.firebase&&a.firebase.apiKey&&a.id).map((a,i)=>Object.assign({warna:'#2FA8D8',jenis:'standar',nama:a.id},a,{i,fa:null,fs:null,ready:false,on:false,err:'',lerr:'',loading:false,loaded:false,co:[],q:[],rev:[],sub:[],bh:[],pay:null,un:[],qf:0,bf:0,qr:null,qp:null}));
 const pad=n=>String(n).padStart(2,'0'),MB=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const iso=m=>{const d=new Date(m);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -160,6 +160,7 @@ const fd=m=>{if(!m)return'-';const d=new Date(m);return d.getDate()+' '+MB[d.get
 const fdt=m=>{if(!m)return'';const d=new Date(m);return d.getDate()+' '+MB[d.getMonth()]+' '+pad(d.getHours())+'.'+pad(d.getMinutes())};
 const ms=v=>!v?0:typeof v==='number'?v:v.toMillis?v.toMillis():v.seconds?v.seconds*1000:typeof v==='string'?(Date.parse(v)||0):0;
 const rp=n=>(n<0?'-':'')+'Rp '+new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(Math.abs(Math.round(n||0)));
+const fm=(n,c)=>c==='MYR'?(n<0?'-':'')+'RM '+new Intl.NumberFormat('ms-MY',{minimumFractionDigits:0,maximumFractionDigits:2}).format(Math.abs(+n||0)):rp(n);
 const rpk=n=>n>=1e9?'Rp '+(n/1e9).toFixed(1).replace('.',',')+' M':n>=1e6?'Rp '+(n/1e6).toFixed(1).replace('.',',')+' jt':n>=1e3?'Rp '+Math.round(n/1e3)+' rb':rp(n);
 const num=v=>{const x=parseFloat(String(v==null?'':v).replace(',','.'));return isFinite(x)?x:0};
 const int=v=>Math.round(+String(v==null?'':v).replace(/[^\d]/g,'')||0);
@@ -190,20 +191,24 @@ function stPill(c){const l=left(c);if(c.kind==='free')return'<span class="pill o
 /* =================== pola "standar" (ZUI KONTRAKTOR dan aplikasi baru) =================== */
 const PLN={starter:'Starter',pro:'Pro',business:'Bisnis'},PORD=['starter','pro','business'];
 const DEFP={starter:{1:79000,6:395000,12:790000},pro:{1:149000,6:745000,12:1490000},business:{1:299000,6:1495000,12:2990000}};
+const DEFPM={starter:{1:21,6:105,12:210},pro:{1:39,6:195,12:390},business:{1:79,6:395,12:790}};
 const STD={
  state(a,c){const now=Date.now(),G=(a.tenggangHari!=null?+a.tenggangHari:3)*DAY,TF=a.mulaiPercobaan?Date.parse(a.mulaiPercobaan+'T00:00:00Z'):Date.UTC(2026,9,15),TD=(+a.percobaanHari||14)*DAY;
   if(c.free)return{kind:'free',plan:'Bisnis',until:0};
   if(c.untilRaw){const p=PLN[c.pk]||'Starter',u=c.untilRaw;if(now<u)return{kind:'paid',plan:p,until:u};if(now<u+G)return{kind:'grace',plan:p,until:u,graceLeft:Math.ceil((u+G-now)/DAY)};return{kind:'expired',plan:p,until:u}}
   const te=Math.max(c.created||now,TF)+TD;if(now<te)return{kind:'trial',plan:'Percobaan',until:te};if(now<te+G)return{kind:'grace',plan:'Percobaan',until:te,graceLeft:Math.ceil((te+G-now)/DAY)};return{kind:'expired',plan:'Percobaan',until:te}},
  async load(a){const db=a.fs;const [cs,rq,pc]=await Promise.all([db.collection('companies').get(),db.collection('subreqs').get(),db.collection('zconfig').doc('pay').get()]);
-  a.pay=pc.exists?pc.data():{};a.qr=null;
+  a.pay=pc.exists?pc.data():{};a.qr=null;a.qr2=null;
   a.sub=rq.docs.map(d=>{const x=d.data();return Object.assign({id:d.id},x,{atMs:ms(x.at),doneMs:ms(x.doneAt)})}).sort((p,q)=>q.atMs-p.atMs);
   a.co=await Promise.all(cs.docs.map(async d=>{const x=d.data();let em='';try{if(x.owner){const m=await db.collection('companies').doc(d.id).collection('members').doc(x.owner).get();em=(m.data()||{}).email||''}}catch(e){}
    const c={a,id:d.id,name:x.name||'(tanpa nama)',email:em,created:ms(x.created_at),pk:x.plan||'',untilRaw:ms(x.until),free:!!x.free};return Object.assign(c,STD.state(a,c))}));
-  a.rev=a.sub.filter(r=>r.status==='ok').map(r=>({m:r.doneMs||r.atMs,amt:+r.amount||0,a,cid:r.cid,nm:r.coName||''}))},
+  a.rev=a.sub.filter(r=>r.status==='ok').map(r=>({m:r.doneMs||r.atMs,amt:+r.amount||0,cur:r.cur==='MYR'?'MYR':'IDR',a,cid:r.cid,nm:r.coName||''}))},
  watch(a){a.qf=0;a.un.push(a.fs.collection('subreqs').where('status','==','wait').onSnapshot(s=>{const old=new Set(a.q.map(q=>q.id));
-  a.q=s.docs.map(d=>{const r=d.data(),c=a.co.find(x=>x.id===r.cid);return{a,id:d.id,cid:r.cid,name:r.coName||(c&&c.name)||r.cid,email:r.byEmail||'',label:(PLN[r.plan]||r.plan)+' · '+r.months+' bulan',amount:+r.amount||0,ref:r.ref||'',at:ms(r.at)||Date.now(),plan:r.plan,months:+r.months||1}});
-  if(a.qf){const nw=a.q.filter(q=>!old.has(q.id));if(nw.length)notify(a.nama+': permintaan bayar',nw.length>1?nw.length+' permintaan baru':nw[0].name+' · '+nw[0].label+' · '+rp(nw[0].amount))}a.qf=1;onQ()},e=>{a.lerr=fbe(e);rAll()}))},
+  a.q=s.docs.map(d=>{const r=d.data(),c=a.co.find(x=>x.id===r.cid);return{a,id:d.id,cid:r.cid,name:r.coName||(c&&c.name)||r.cid,email:r.byEmail||'',label:(PLN[r.plan]||r.plan)+' · '+r.months+' bulan',amount:+r.amount||0,cur:r.cur==='MYR'?'MYR':'IDR',ref:r.ref||'',at:ms(r.at)||Date.now(),plan:r.plan,months:+r.months||1}});
+  if(a.qf){const nw=a.q.filter(q=>!old.has(q.id));if(nw.length)notify(a.nama+': permintaan bayar',nw.length>1?nw.length+' permintaan baru':nw[0].name+' · '+nw[0].label+' · '+fm(nw[0].amount,nw[0].cur))}a.qf=1;onQ()},e=>{a.lerr=fbe(e);rAll()}));
+  /* chat Langganan dari pelanggan: support/{cid} */
+  a.bf=0;a.un.push(a.fs.collection('support').onSnapshot(s=>{const o=a.bh;a.bh=s.docs.map(d=>{const x=d.data();return{id:d.id,nama:x.coName||d.id,oe:x.byEmail||'',tp:ms(x.at)||Date.now(),dr:x.from==='a'?'a':'u',bu:!!x.unread,tx:x.last||'',st:'chat'}});
+   if(a.bf){const nw=a.bh.filter(h=>h.bu&&!(o.find(x=>x.id===h.id)||{}).bu);if(nw.length)notify(a.nama+': pesan baru',nw.length>1?nw.length+' pesan baru':nw[0].nama+(nw[0].tx?': '+nw[0].tx:''))}a.bf=1;onQ();if(KM.a===a)kmHeadUi()},e=>{a.lerr=fbe(e);rAll()}))},
  async activate(a,q){const db=a.fs,ref=db.collection('companies').doc(q.cid),d=await ref.get();if(!d.exists)throw new Error('Perusahaan tidak ditemukan');const x=d.data()||{};
   const until=addMonths(Math.max(Date.now(),ms(x.until)),q.months),B=db.batch();
   B.update(ref,{plan:q.plan,until:TS(until)});B.update(db.collection('subreqs').doc(q.id),{status:'ok',doneAt:firebase.firestore.FieldValue.serverTimestamp()});await B.commit();return until},
@@ -218,20 +223,26 @@ const STD={
   <label>Aktif sampai (kosongkan = kembali ke masa percobaan)<input id="xu" type="date" value="${c.untilRaw?iso(c.untilRaw):''}"></label>
   <label class="ck" style="margin-top:12px"><input id="xf" type="checkbox"${c.free?' checked':''}> Gratis selamanya (semua fitur paket Bisnis)</label>
   <div class="act"><button class="b pri" data-a="ssave">Simpan</button></div>
-  ${h.length?`<h3 class="h3">Riwayat permintaan</h3>`+'<div class="list">'+h.map(r=>`<div class="lr"><span class="tx"><span class="nm">${E(PLN[r.plan]||r.plan)} · ${r.months} bulan <span class="pill ${r.status==='ok'?'ok':r.status==='no'?'bad':'am'}">${r.status==='ok'?'aktif':r.status==='no'?'ditolak':'menunggu'}</span></span><span class="m">${fd(r.atMs)} · Ref ${E(r.ref||'-')}${r.note?' · '+E(r.note):''}</span></span><span class="amt">${rp(r.amount)}</span></div>`).join('')+'</div>':''}
+  ${h.length?`<h3 class="h3">Riwayat permintaan</h3>`+'<div class="list">'+h.map(r=>`<div class="lr"><span class="tx"><span class="nm">${E(PLN[r.plan]||r.plan)} · ${r.months} bulan <span class="pill ${r.status==='ok'?'ok':r.status==='no'?'bad':'am'}">${r.status==='ok'?'aktif':r.status==='no'?'ditolak':'menunggu'}</span></span><span class="m">${fd(r.atMs)} · Ref ${E(r.ref||'-')}${r.note?' · '+E(r.note):''}</span></span><span class="amt">${fm(r.amount,r.cur)}</span></div>`).join('')+'</div>':''}
+  <div class="act" style="margin-top:14px"><button class="b" data-a="km" data-i="${a.i}" data-id="${E(c.id)}">Buka percakapan</button></div>
   <div class="btn"><button class="b" data-a="close">Tutup</button></div>`)},
  async extend(a,c,plan,m){const ref=a.fs.collection('companies').doc(c.id),d=await ref.get(),x=d.data()||{},until=addMonths(Math.max(Date.now(),ms(x.until)),m);await ref.update({plan,until:TS(until)});return until},
  async save(a,c,o){await a.fs.collection('companies').doc(c.id).update({plan:o.plan,free:!!o.free,until:o.until?TS(new Date(o.until+'T23:59:59').getTime()):firebase.firestore.FieldValue.delete()})},
- payForm(a){const pc=a.pay||{},pr=pc.prices||{},qr=a.qr!=null?a.qr:(pc.qris||''),v=(p,m)=>+((pr[p]||{})[m]||(DEFP[p]||{})[m]||0);
-  return`<p class="m">Tampil di halaman Langganan ${E(a.nama)}. Harga dalam Rupiah per perusahaan.</p>
-  <div class="sx"><table class="tb"><thead><tr><th>Paket</th><th>1 bulan</th><th>6 bulan</th><th>12 bulan</th></tr></thead><tbody>${PORD.map(p=>`<tr><td>${PLN[p]}</td>${[1,6,12].map(m=>`<td><input class="ni" id="sp_${p}_${m}" inputmode="numeric" value="${v(p,m)}" style="min-width:78px;width:100%;text-align:right;margin:0;padding:7px 6px;font-size:14px"></td>`).join('')}</tr>`).join('')}</tbody></table></div>
-  <label class="fl">WhatsApp admin (untuk bukti bayar)<input class="ni" id="swa" inputmode="tel" maxlength="20" placeholder="62812…" value="${E(pc.wa||'')}"></label>
-  <label class="fl">Catatan pembayaran (mis. nama rekening usaha)<textarea class="ni" id="snt" rows="3" maxlength="500">${E(pc.note||'')}</textarea></label>
-  <div class="fl">QRIS</div><div class="qri">${qr?`<img src="${E(qr)}" alt="QRIS ${E(a.nama)}">`:'<span class="m">Belum ada QRIS.</span>'}<label class="b" style="cursor:pointer">Pilih gambar QRIS<input type="file" accept="image/*" data-a="sqr" data-i="${a.i}" hidden></label>${qr?`<button class="b" data-a="sqx" data-i="${a.i}">Hapus QRIS</button>`:''}</div>
-  <div class="act"><button class="b pri" data-a="spsave" data-i="${a.i}">Simpan harga & QRIS</button></div>`},
- async paySave(a){const prices={};for(const p of PORD){prices[p]={};for(const m of [1,6,12])prices[p][m]=int($('#sp_'+p+'_'+m).value)}
-  const o={prices,wa:$('#swa').value.trim(),note:$('#snt').value.slice(0,500)};if(a.qr!=null)o.qris=a.qr;
-  await a.fs.collection('zconfig').doc('pay').set(o,{merge:true});a.pay=Object.assign({},a.pay,o);a.qr=null}
+ payForm(a){const pc=a.pay||{},qr=a.qr!=null?a.qr:(pc.qris||''),dn=a.qr2!=null?a.qr2:(pc.duitnow||'');
+  const tbl=(px,pr,df)=>`<div class="sx"><table class="tb"><thead><tr><th>Paket</th><th>1 bulan</th><th>6 bulan</th><th>12 bulan</th></tr></thead><tbody>${PORD.map(p=>`<tr><td>${PLN[p]}</td>${[1,6,12].map(m=>`<td><input class="ni" id="${px}_${p}_${m}" inputmode="decimal" value="${+(((pr||{})[p]||{})[m]||(df[p]||{})[m]||0)}" style="min-width:78px;width:100%;text-align:right;margin:0;padding:7px 6px;font-size:14px"></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const img=(v,nm,set,clr)=>`<div class="qri">${v?`<img src="${E(v)}" alt="${nm}">`:`<span class="m">Belum ada ${nm}.</span>`}<label class="b" style="cursor:pointer">Pilih gambar ${nm}<input type="file" accept="image/*" data-a="${set}" data-i="${a.i}" hidden></label>${v?`<button class="b" data-a="${clr}" data-i="${a.i}">Hapus</button>`:''}</div>`;
+  return`<p class="m">Tampil di halaman Langganan ${E(a.nama)}. Perusahaan bermata uang Ringgit melihat harga Ringgit dan DuitNow; selain itu Rupiah dan QRIS.</p>
+  <div class="h3">Rupiah · QRIS</div>${tbl('sp',pc.prices,DEFP)}
+  <label class="fl">Catatan pembayaran Rupiah (mis. nama rekening usaha)<textarea class="ni" id="snt" rows="2" maxlength="500">${E(pc.note||'')}</textarea></label>
+  ${img(qr,'QRIS','sqr','sqx')}
+  <div class="h3">Ringgit · DuitNow</div>${tbl('sm',pc.pricesMYR,DEFPM)}
+  <label class="fl">Catatan pembayaran Ringgit<textarea class="ni" id="snm" rows="2" maxlength="500">${E(pc.noteMYR||'')}</textarea></label>
+  ${img(dn,'DuitNow QR','sqr2','sqx2')}
+  <label class="fl">WhatsApp admin (cadangan, untuk bukti bayar)<input class="ni" id="swa" inputmode="tel" maxlength="20" placeholder="62812…" value="${E(pc.wa||'')}"></label>
+  <div class="act"><button class="b pri" data-a="spsave" data-i="${a.i}">Simpan harga & pembayaran</button></div>`},
+ async paySave(a){const rd=(px,dec)=>{const o={};for(const p of PORD){o[p]={};for(const m of [1,6,12]){const v=$('#'+px+'_'+p+'_'+m).value;o[p][m]=dec?Math.max(0,Math.round(num(v)*100)/100):int(v)}}return o};
+  const o={prices:rd('sp'),pricesMYR:rd('sm',1),wa:$('#swa').value.trim(),note:$('#snt').value.slice(0,500),noteMYR:$('#snm').value.slice(0,500)};if(a.qr!=null)o.qris=a.qr;if(a.qr2!=null)o.duitnow=a.qr2;
+  await a.fs.collection('zconfig').doc('pay').set(o,{merge:true});a.pay=Object.assign({},a.pay,o);a.qr=null;a.qr2=null}
 };
 
 /* =================== pola "zuisystem" =================== */
@@ -252,7 +263,7 @@ const SYS={
   a.co=await Promise.all(cs.docs.map(async d=>{const x=d.data();let em='';try{if(x.owner){const m=await db.collection('perusahaan').doc(d.id).collection('anggota').doc(x.owner).get();em=m.exists?(m.data().email||''):''}}catch(e){}
    const c={a,id:d.id,name:x.nama||'(tanpa nama)',email:em,created:+x.ts||0,raw:x};return Object.assign(c,SYS.state(c))}));
   /* pemasukan: catatan resit/{ref}; satu aktivasi bisa menulis beberapa ref dengan cid+ts sama. Jumlah < 1000 dianggap Ringgit/Dolar dan tidak dihitung. */
-  const seen=new Set();a.rev=[];rs.docs.forEach(d=>{const x=d.data(),k=x.cid+'|'+x.ts;if(seen.has(k))return;seen.add(k);const j=+x.jml||0;if(j>=1000){const c=a.co.find(z=>z.id===x.cid);a.rev.push({m:+x.ts||0,amt:j,a,cid:x.cid,nm:c?c.name:''})}})},
+  const seen=new Set();a.rev=[];rs.docs.forEach(d=>{const x=d.data(),k=x.cid+'|'+x.ts;if(seen.has(k))return;seen.add(k);const j=+x.jml||0;if(j>=1000){const c=a.co.find(z=>z.id===x.cid);a.rev.push({m:+x.ts||0,amt:j,cur:'IDR',a,cid:x.cid,nm:c?c.name:''})}})},
  watch(a){a.bf=0;a.un.push(a.fs.collection('bantuan').onSnapshot(s=>{const o=a.bh;a.bh=s.docs.map(d=>Object.assign({id:d.id},d.data()));
   if(a.bf){const nw=a.bh.filter(h=>h.bu&&!(o.find(x=>x.id===h.id)||{}).bu);if(nw.length){const h=nw[0],pg=h.st==='langganan'||h.st==='resit';notify(a.nama+': '+(pg?'pengajuan langganan':'pesan baru'),nw.length>1?nw.length+' pesan baru':(h.nama||'Pelanggan')+(h.tx?': '+h.tx:''))}}a.bf=1;
   a.q=a.bh.filter(h=>h.st==='langganan'||h.st==='resit').map(h=>{const p=pkOf(a,h.pk),bln=p?(+p.bln||1):0;return{a,id:h.id,cid:h.id,name:h.nama||h.id,email:h.oe||'',label:(p?p.nama:'Paket belum dipilih')+(h.st==='resit'?' · resit masuk':''),amount:bln?sysPrice(a,bln):0,est:true,ref:'',at:+h.tp||Date.now(),months:bln,pk:h.pk,sys:true}});
@@ -293,11 +304,20 @@ const ADP={standar:STD,zuisystem:SYS};
 const ad=a=>ADP[a.jenis]||STD;
 
 /* =================== percakapan Zui System (chat + periksa resit + aktivasi) =================== */
-let KM={a:null,cid:'',msgs:[],un:null,R:null,busy:false};
+let KM={a:null,cid:'',msgs:[],un:null,R:null,busy:false,std:false};
 const kmHead=(a,cid)=>{const h=a.bh.find(x=>x.id===cid)||{},c=a.co.find(x=>x.id===cid)||{};return{cid,nama:String(h.nama||c.name||'').slice(0,80),oe:String(h.oe||c.email||'').toLowerCase()}};
-function kmStop(){if(KM.un){try{KM.un()}catch(e){}}KM={a:null,cid:'',msgs:[],un:null,R:null,busy:false}}
+function kmStop(){if(KM.un){try{KM.un()}catch(e){}}KM={a:null,cid:'',msgs:[],un:null,R:null,busy:false,std:false}}
 $('#dk').addEventListener('close',kmStop);
-function kmOpen(a,cid){cls();kmStop();KM.a=a;KM.cid=cid;const h=a.bh.find(x=>x.id===cid)||{},c=a.co.find(x=>x.id===cid);
+/* chat aplikasi pola standar (ZUI KONTRAKTOR): support/{cid}/msgs */
+function kmOpenStd(a,cid){cls();kmStop();KM.a=a;KM.cid=cid;KM.std=true;const h=a.bh.find(x=>x.id===cid)||{},c=a.co.find(x=>x.id===cid);
+ dlg(`<h2>${E(h.nama||(c&&c.name)||cid)}</h2><div class="m">${dotOf(a)} · ${E(h.oe||(c&&c.email)||'')}</div>${c?`<div class="kv"><span>Status</span><b>${E(KL[c.kind])}${c.kind==='paid'||c.kind==='grace'?' · '+E(c.plan):''}</b><span>Berlaku sampai</span><b>${c.until?fd(c.until):'-'}</b></div>`:''}
+ <div id="kmt" class="bnm"><div class="em">Memuat pesan…</div></div><div class="bnin"><input id="kmi" maxlength="2000" placeholder="Tulis balasan" aria-label="Tulis balasan"><button class="b" data-a="kmsend">Kirim</button></div>
+ <div id="kmq"></div>
+ <div class="act" style="margin-top:14px">${c?`<button class="b" data-a="co" data-i="${a.i}" data-id="${E(cid)}">Atur langganan</button>`:''}</div><div class="btn"><button class="b" data-a="close">Tutup</button></div>`);kmQ();
+ try{KM.un=a.fs.collection('support').doc(cid).collection('msgs').orderBy('at','desc').limit(80).onSnapshot(s=>{if(KM.cid!==cid)return;KM.msgs=s.docs.map(d=>{const x=d.data();return{dari:x.from==='a'?'a':'u',teks:x.text||'',img:x.img||'',nama:x.name||'',ts:ms(x.at)||Date.now()}}).sort((x,y)=>x.ts-y.ts);kmChat()},e=>toast(fbe(e)))}catch(e){}
+ if(h.bu)a.fs.collection('support').doc(cid).update({unread:false}).catch(()=>{})}
+function kmQ(){const el=$('#kmq');if(!el||!KM.a)return;const L=KM.a.q.filter(q=>q.cid===KM.cid);el.innerHTML=L.length?`<div class="h3">Permintaan bayar</div><div class="list">${L.map(qRow).join('')}</div>`:''}
+function kmOpen(a,cid){if(a&&a.jenis!=='zuisystem')return kmOpenStd(a,cid);cls();kmStop();KM.a=a;KM.cid=cid;const h=a.bh.find(x=>x.id===cid)||{},c=a.co.find(x=>x.id===cid);
  dlg(`<h2>${E(h.nama||(c&&c.name)||cid)}</h2><div class="m">${dotOf(a)} · ${E(h.oe||(c&&c.email)||'')}</div>${c?`<div class="kv"><span>Status</span><b>${E(KL[c.kind])}${c.kind==='paid'?' · '+E(c.plan):''}</b><span>Berlaku sampai</span><b>${c.until?fd(c.until):'-'}</b></div>`:''}
  <div id="kmt" class="bnm"><div class="em">Memuat pesan…</div></div><div class="bnin"><input id="kmi" maxlength="1000" placeholder="Tulis balasan" aria-label="Tulis balasan"><button class="b" data-a="kmsend">Kirim</button></div>
  <div id="kmr"></div><h3 class="h3">Aktifkan langganan</h3><p class="m" id="kmh"></p>
@@ -305,11 +325,13 @@ function kmOpen(a,cid){cls();kmStop();KM.a=a;KM.cid=cid;const h=a.bh.find(x=>x.i
  <div class="act"><button class="b" data-a="kmrej">Tolak pembayaran</button></div><div class="btn"><button class="b" data-a="close">Tutup</button></div>`);kmHeadUi();
  try{KM.un=a.fs.collection('bantuan').doc(cid).collection('pesan').orderBy('ts','desc').limit(80).onSnapshot(s=>{if(KM.cid!==cid)return;KM.msgs=s.docs.map(d=>Object.assign({id:d.id},d.data())).sort((x,y)=>x.ts-y.ts);kmChat();kmCek()},e=>toast(fbe(e)))}catch(e){}
  if(h.bu)a.fs.collection('bantuan').doc(cid).update({bu:false}).catch(()=>{})}
-function kmHeadUi(){const el=$('#kmh');if(!el||!KM.a)return;const h=KM.a.bh.find(x=>x.id===KM.cid)||{},p=pkOf(KM.a,h.pk),want=(h.st==='langganan'||h.st==='resit')&&p?(+p.bln||1):0;
+function kmHeadUi(){if(KM.std){kmQ();return}const el=$('#kmh');if(!el||!KM.a)return;const h=KM.a.bh.find(x=>x.id===KM.cid)||{},p=pkOf(KM.a,h.pk),want=(h.st==='langganan'||h.st==='resit')&&p?(+p.bln||1):0;
  document.querySelectorAll('#dk [data-a=kmakt]').forEach(b=>b.classList.toggle('pri',+b.dataset.b===want));
  el.innerHTML=(h.st==='langganan'||h.st==='resit')?`<span style="color:var(--am)">Pengajuan: ${E(p?p.nama:'paket belum dipilih')}. Cek dulu uang masuk di mutasi rekening.</span>`:'Tekan dua kali untuk mengaktifkan. Masa aktif ditambah dari tanggal berakhir saat ini.'}
-function kmChat(){const el=$('#kmt');if(!el)return;el.innerHTML=KM.msgs.length?KM.msgs.map(m=>`<div class="bm ${m.dari==='a'?'me':'ad'}"><div>${E(m.teks).replace(/\n/g,'<br>')}</div><small>${E(m.dari==='a'?'Tim Zui':(m.nama||''))} · ${fdt(m.ts)}</small></div>`).join(''):'<div class="em">Belum ada pesan.</div>';el.scrollTop=el.scrollHeight}
+function kmChat(){const el=$('#kmt');if(!el)return;el.innerHTML=KM.msgs.length?KM.msgs.map(m=>`<div class="bm ${m.dari==='a'?'me':'ad'}">${m.img?`<img src="${E(m.img)}" alt="Foto dari pelanggan" style="display:block;max-width:240px;width:100%;border-radius:8px;margin-bottom:4px;background:#fff">`:''}${m.teks?`<div>${E(m.teks).replace(/\n/g,'<br>')}</div>`:''}<small>${E(m.dari==='a'?'Tim Zui':(m.nama||''))} · ${fdt(m.ts)}</small></div>`).join(''):'<div class="em">Belum ada pesan.</div>';el.scrollTop=el.scrollHeight}
 async function kmSend(){const i=$('#kmi'),t=(i.value||'').trim(),a=KM.a,cid=KM.cid;if(!t||!a){i&&i.focus();return}i.value='';const ts=Date.now(),db=a.fs,B=db.batch();
+ if(KM.std){const sv=firebase.firestore.FieldValue.serverTimestamp(),h=kmHead(a,cid);B.set(db.collection('support').doc(cid).collection('msgs').doc(),{from:'a',name:'Tim ZUI',text:t.slice(0,2000),img:'',at:sv,uid:a.fa.currentUser.uid});
+  B.set(db.collection('support').doc(cid),{cid,coName:h.nama,byEmail:h.oe,last:t.slice(0,120),at:sv,from:'a',seen:false,unread:false},{merge:true});try{await B.commit()}catch(e){i.value=t;toast(fbe(e))}return}
  B.set(db.collection('bantuan').doc(cid).collection('pesan').doc(uid()),{dari:'a',uid:a.fa.currentUser.uid,nama:'Tim Zui',teks:t.slice(0,1000),jenis:'chat',ts});
  B.set(db.collection('bantuan').doc(cid),Object.assign(kmHead(a,cid),{tp:ts,dr:'a',bu:false,ba:true,tx:t.slice(0,120)}),{merge:true});
  try{await B.commit()}catch(e){i.value=t;toast(fbe(e))}}
@@ -375,7 +397,7 @@ function beep(){try{const A=new (window.AudioContext||window.webkitAudioContext)
 function notify(t,b){toast(t+(b?' — '+b:''));beep();try{if(window.Notification&&Notification.permission==='granted'&&document.hidden){const o={body:b||'',icon:'icon-192.png',badge:'icon-192.png',tag:'zadm-'+Date.now()};
  const plain=()=>{try{new Notification(t,o)}catch(e){}};
  if(navigator.serviceWorker)navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(t,o):plain()).catch(plain);else plain()}}catch(e){}}
-function onQ(){bdg();if(cur===0)rRi();rAq();rMsg()}
+function onQ(){bdg();if(cur===0)rRi();rAq();rMsg();if(KM.std)kmQ()}
 function bdg(){const nq=allQ().length,nu=APPS.reduce((s,a)=>s+a.bh.filter(h=>h.bu).length,0),nx=APPS.reduce((s,a)=>s+a.bh.filter(h=>h.bu&&!(h.st==='langganan'||h.st==='resit')).length,0),n=nq+nx;
  const set=(sel,v)=>document.querySelectorAll(sel).forEach(e=>{e.textContent=v>99?'99+':v;e.classList.toggle('on',v>0)});set('.cq',nq);set('.cm',nu);set('#nbn',n);
  document.title=(n?'('+n+') ':'')+'Zui Admin';$('#nb').setAttribute('aria-label',n?n+' menunggu perhatian':'Antrean kosong');
@@ -410,24 +432,24 @@ function connCards(){return APPS.filter(a=>a.ready&&!a.on).map(a=>`<div class="c
  APPS.filter(a=>a.on&&a.lerr).map(a=>`<div class="card warnc" style="margin-bottom:12px"><span class="nm">${E(a.nama)}: data gagal dimuat</span><span class="m">${E(a.lerr)}</span><div class="act"><button class="b" data-a="reload" data-i="${a.i}">Coba lagi</button></div></div>`).join('')}
 function coRow(c){const l=left(c);return`<button type="button" class="lr" data-a="co" data-i="${c.a.i}" data-id="${E(c.id)}">${av(c.name,c.a)}<span class="tx"><span class="nm">${E(c.name)}</span><span class="m">${short(c.a)} · ${E(c.kind==='free'?'Gratis selamanya':c.plan)}${c.until?' · sampai '+fd(c.until):''}</span></span>${stPill(c)}</button>`}
 function rRi(){const A=APPS.filter(inF),C=A.flatMap(a=>a.co),R=A.flatMap(a=>a.rev),Q=allQ().filter(q=>inF(q.a)),now=new Date(),m0=new Date(now.getFullYear(),now.getMonth(),1).getTime(),m1=new Date(now.getFullYear(),now.getMonth()-1,1).getTime();
- const sum=(L,f)=>L.filter(f).reduce((s,r)=>s+r.amt,0),thisM=sum(R,r=>r.m>=m0),lastM=sum(R,r=>r.m>=m1&&r.m<m0),ld=APPS.some(a=>a.loading),K={free:0,paid:0,trial:0,grace:0,expired:0};C.forEach(c=>K[c.kind]++);
+ const sum=(L,f)=>L.filter(r=>(r.cur||'IDR')==='IDR'&&f(r)).reduce((s,r)=>s+r.amt,0),sumM=(L,f)=>L.filter(r=>r.cur==='MYR'&&f(r)).reduce((s,r)=>s+r.amt,0),thisMM=sumM(R,r=>r.m>=m0),allM=sumM(R,()=>true),thisM=sum(R,r=>r.m>=m0),lastM=sum(R,r=>r.m>=m1&&r.m<m0),ld=APPS.some(a=>a.loading),K={free:0,paid:0,trial:0,grace:0,expired:0};C.forEach(c=>K[c.kind]++);
  const ms6=[...Array(6)].map((_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-5+i,1),s=d.getTime(),e=new Date(d.getFullYear(),d.getMonth()+1,1).getTime();return{l:MB[d.getMonth()],v:sum(R,r=>r.m>=s&&r.m<e)}});
- const soon=C.filter(c=>c.kind==='grace'||((c.kind==='paid'||c.kind==='trial')&&left(c)<=7)).sort((x,y)=>x.until-y.until),qsum=Q.reduce((s,q)=>s+(q.amount||0),0);
+ const soon=C.filter(c=>c.kind==='grace'||((c.kind==='paid'||c.kind==='trial')&&left(c)<=7)).sort((x,y)=>x.until-y.until),qsum=Q.filter(q=>q.cur!=='MYR').reduce((s,q)=>s+(q.amount||0),0),qsumM=Q.filter(q=>q.cur==='MYR').reduce((s,q)=>s+(q.amount||0),0);
  const delta=thisM>lastM?`<span class="pill ok">naik dari ${rpk(lastM)}</span>`:thisM<lastM?`<span class="pill am">bulan lalu ${rpk(lastM)}</span>`:'';
  $('#p0').innerHTML=connCards()+(ld?'<p class="sum">Memuat data…</p>':'')+
- `<div class="dash"><div class="card"><div class="rowb"><span class="lbl">Pemasukan bulan ini</span>${delta}</div><div class="big">${rp(thisM)}</div>${chart(ms6.map(x=>x.v))}<div class="ml">${ms6.map(x=>`<span>${x.l}</span>`).join('')}</div></div>
+ `<div class="dash"><div class="card"><div class="rowb"><span class="lbl">Pemasukan bulan ini</span>${delta}</div><div class="big">${rp(thisM)}</div>${thisMM?`<span class="m">dan ${fm(thisMM,'MYR')} dalam Ringgit</span>`:''}${chart(ms6.map(x=>x.v))}<div class="ml">${ms6.map(x=>`<span>${x.l}</span>`).join('')}</div></div>
  <div class="tiles"><div class="tile"><span class="lbl">Pelanggan berbayar</span><div class="mid">${K.paid} <small>/ ${C.length}</small></div><span class="m">${K.trial} percobaan · ${K.free} gratis</span></div>
- <button type="button" class="tile${Q.length?' warn':''}" data-a="go" data-v="1"><span class="lbl">Menunggu dicek</span><div class="mid">${Q.length}</div><span class="m">${Q.length?rp(qsum)+' menunggu':'Antrean kosong'}</span></button>
+ <button type="button" class="tile${Q.length?' warn':''}" data-a="go" data-v="1"><span class="lbl">Menunggu dicek</span><div class="mid">${Q.length}</div><span class="m">${Q.length?[qsum?rp(qsum):'',qsumM?fm(qsumM,'MYR'):''].filter(Boolean).join(' + ')+' menunggu':'Antrean kosong'}</span></button>
  <div class="tile"><span class="lbl">Segera berakhir</span><div class="mid" style="${soon.length?'color:var(--bad)':''}">${soon.length}</div><span class="m">dalam 7 hari</span></div>
- <div class="tile"><span class="lbl">Total tercatat</span><div class="mid">${rpk(sum(R,()=>true))}</div><span class="m">bulan lalu ${rpk(lastM)}</span></div></div></div>
- <div class="two">${FA==='all'&&APPS.length>1?`<div><div class="sec"><span class="st">Per aplikasi</span></div><div class="list">${APPS.map(a=>{const n=k=>a.co.filter(c=>c.kind===k).length;return`<button type="button" class="lr" data-a="fa" data-v="${a.i}">${av(a.nama,a)}<span class="tx"><span class="nm">${E(a.nama)}${a.on?'':' <span class="pill bad">belum tersambung</span>'}</span><span class="m">${a.co.length} perusahaan · ${n('paid')} berbayar · ${n('trial')} percobaan · ${n('grace')+n('expired')} habis</span></span><span class="amt">${rpk(sum(a.rev,r=>r.m>=m0))}<small>bulan ini</small></span></button>`}).join('')}</div></div>`:''}
+ <div class="tile"><span class="lbl">Total tercatat</span><div class="mid">${rpk(sum(R,()=>true))}</div><span class="m">${allM?fm(allM,'MYR')+' · ':''}bulan lalu ${rpk(lastM)}</span></div></div></div>
+ <div class="two">${FA==='all'&&APPS.length>1?`<div><div class="sec"><span class="st">Per aplikasi</span></div><div class="list">${APPS.map(a=>{const n=k=>a.co.filter(c=>c.kind===k).length;return`<button type="button" class="lr" data-a="fa" data-v="${a.i}">${av(a.nama,a)}<span class="tx"><span class="nm">${E(a.nama)}${a.on?'':' <span class="pill bad">belum tersambung</span>'}</span><span class="m">${a.co.length} perusahaan · ${n('paid')} berbayar · ${n('trial')} percobaan · ${n('grace')+n('expired')} habis</span></span><span class="amt">${rpk(sum(a.rev,r=>r.m>=m0))}<small>${sumM(a.rev,r=>r.m>=m0)?fm(sumM(a.rev,r=>r.m>=m0),'MYR')+' · ':''}bulan ini</small></span></button>`}).join('')}</div></div>`:''}
  <div><div class="sec"><span class="st">Segera berakhir</span><button type="button" data-a="pfgo" data-v="soon">Lihat semua</button></div><div class="list">${soon.length?soon.slice(0,8).map(coRow).join(''):'<div class="em">Tidak ada yang berakhir dalam 7 hari.</div>'}</div></div></div>
- <p class="note">Pemasukan dihitung dari pembayaran yang diaktifkan lewat antrean, dalam Rupiah.</p>`}
-function qRow(q){const a=q.a;return`<div class="qi"><div class="rowb" style="align-items:flex-start">${av(q.name,a)}<span class="tx"><span class="nm">${E(q.name)}</span><span class="m">${E(q.label)}${q.ref?' · Ref <b>'+E(q.ref)+'</b>':''}</span><span class="m">${short(a)} · ${fdt(q.at)}${q.email?' · '+E(q.email):''}</span></span><span class="amt">${q.amount?(q.est?'± ':'')+rp(q.amount):'-'}</span></div>
+ <p class="note">Pemasukan dihitung dari pembayaran yang diaktifkan lewat antrean. Grafik dan angka utama dalam Rupiah; Ringgit ditampilkan terpisah.</p>`}
+function qRow(q){const a=q.a;return`<div class="qi"><div class="rowb" style="align-items:flex-start">${av(q.name,a)}<span class="tx"><span class="nm">${E(q.name)}</span><span class="m">${E(q.label)}${q.ref?' · Ref <b>'+E(q.ref)+'</b>':''}</span><span class="m">${short(a)} · ${fdt(q.at)}${q.email?' · '+E(q.email):''}</span></span><span class="amt">${q.amount?(q.est?'± ':'')+fm(q.amount,q.cur):'-'}</span></div>
  <div class="act">${q.sys?`<button class="b" data-a="km" data-i="${a.i}" data-id="${E(q.cid)}">Resit &amp; chat</button>`:''}<button class="b" data-a="qrej" data-i="${a.i}" data-id="${E(q.id)}">Tolak</button>${q.months?`<button class="b pri" data-a="qakt" data-i="${a.i}" data-id="${E(q.id)}">Aktifkan</button>`:''}</div></div>`}
 function rAq(){const Q=allQ().filter(q=>inF(q.a)),done=APPS.filter(a=>a.jenis!=='zuisystem'&&inF(a)).flatMap(a=>a.sub.filter(r=>r.status!=='wait').map(r=>Object.assign({a},r))).sort((x,y)=>(y.doneMs||y.atMs)-(x.doneMs||x.atMs)).slice(0,10);
  $('#p1').innerHTML=connCards()+`<p class="sum">${Q.length?Q.length+' permintaan menunggu. Cek uang masuk di mutasi rekening, lalu tekan Aktifkan dua kali.':'Tidak ada permintaan bayar yang menunggu.'}</p>${Q.length?`<div class="list">${Q.map(qRow).join('')}</div>`:''}
- ${done.length?`<div class="sec"><span class="st">Baru diproses</span></div><div class="list">`+done.map(r=>`<div class="lr">${av(r.coName||r.cid,r.a)}<span class="tx"><span class="nm">${E(r.coName||r.cid)}</span><span class="m">${short(r.a)} · ${E(PLN[r.plan]||r.plan)} ${r.months} bulan · ${fd(r.doneMs||r.atMs)}${r.note?' · '+E(r.note):''}</span></span><span class="amt">${rp(r.amount)}<small><span class="pill ${r.status==='ok'?'ok':'bad'}">${r.status==='ok'?'aktif':'ditolak'}</span></small></span></div>`).join('')+'</div>':''}`}
+ ${done.length?`<div class="sec"><span class="st">Baru diproses</span></div><div class="list">`+done.map(r=>`<div class="lr">${av(r.coName||r.cid,r.a)}<span class="tx"><span class="nm">${E(r.coName||r.cid)}</span><span class="m">${short(r.a)} · ${E(PLN[r.plan]||r.plan)} ${r.months} bulan · ${fd(r.doneMs||r.atMs)}${r.note?' · '+E(r.note):''}</span></span><span class="amt">${fm(r.amount,r.cur)}<small><span class="pill ${r.status==='ok'?'ok':'bad'}">${r.status==='ok'?'aktif':'ditolak'}</span></small></span></div>`).join('')+'</div>':''}`}
 function rPl(){const all=APPS.filter(inF).flatMap(a=>a.co),q=PF.q.trim().toLowerCase();
  const F={all:()=>true,paid:c=>c.kind==='paid',trial:c=>c.kind==='trial',soon:c=>c.kind==='grace'||((c.kind==='paid'||c.kind==='trial')&&left(c)<=7),expired:c=>c.kind==='expired',free:c=>c.kind==='free'};
  let L=all.filter(F[PF.st]||F.all);if(q)L=L.filter(c=>(c.name+' '+c.email).toLowerCase().includes(q));L.sort((x,y)=>(x.kind==='free')-(y.kind==='free')||(x.until||9e15)-(y.until||9e15));
@@ -436,9 +458,8 @@ function rPl(){const all=APPS.filter(inF).flatMap(a=>a.co),q=PF.q.trim().toLower
  const ch=(v,l)=>`<button class="chip${PF.st===v?' on':''}" data-a="pf" data-v="${v}">${l}</button>`;
  $('#p2').innerHTML=`<div class="flt" style="margin-top:-4px">${ch('all','Semua')}${ch('paid','Berbayar')}${ch('trial','Percobaan')}${ch('soon','Segera berakhir')}${ch('expired','Habis')}${ch('free','Gratis')}</div>
  <input class="srch" id="pq" type="search" placeholder="Cari nama perusahaan atau email" aria-label="Cari pelanggan" value="${E(PF.q)}"><div id="plst">${html}</div>`}
-function rMsg(){const S=APPS.filter(a=>a.jenis==='zuisystem'&&inF(a)),L=S.flatMap(a=>a.bh.map(h=>Object.assign({a},h))).sort((x,y)=>(y.tp||0)-(x.tp||0)),n=L.filter(h=>h.bu).length,other=APPS.filter(a=>a.jenis!=='zuisystem');
- $('#p3').innerHTML=`<p class="sum">${S.length?n+' belum dibaca':'Aplikasi yang dipilih belum punya fitur chat.'}</p>${L.length?`<div class="list">${L.map(h=>`<button type="button" class="lr" data-a="km" data-i="${h.a.i}" data-id="${E(h.id)}">${av(h.nama,h.a)}<span class="tx"><span class="nm">${E(h.nama||'(tanpa nama)')} ${h.bu?'<span class="pill bad">baru</span>':''}${h.st==='resit'?' <span class="pill ok">resit masuk</span>':''}${h.st==='langganan'?' <span class="pill am">pengajuan</span>':''}</span><span class="m">${h.dr==='a'?'Anda: ':''}${E(h.tx||'')}</span><span class="m">${short(h.a)} · ${fdt(h.tp)}</span></span></button>`).join('')}</div>`:''}
- ${other.length?`<p class="note">${other.map(a=>E(a.nama)).join(', ')} belum punya chat; pelanggannya menghubungi lewat WhatsApp yang diatur di menu Harga.</p>`:''}`}
+function rMsg(){const S=APPS.filter(inF),L=S.flatMap(a=>a.bh.map(h=>Object.assign({a},h))).sort((x,y)=>(y.tp||0)-(x.tp||0)),n=L.filter(h=>h.bu).length,other=APPS.filter(a=>a.jenis!=='zuisystem');
+ $('#p3').innerHTML=`<p class="sum">${L.length?n+' belum dibaca':'Belum ada percakapan.'}</p>${L.length?`<div class="list">${L.map(h=>`<button type="button" class="lr" data-a="km" data-i="${h.a.i}" data-id="${E(h.id)}">${av(h.nama,h.a)}<span class="tx"><span class="nm">${E(h.nama||'(tanpa nama)')} ${h.bu?'<span class="pill bad">baru</span>':''}${h.st==='resit'?' <span class="pill ok">resit masuk</span>':''}${h.st==='langganan'?' <span class="pill am">pengajuan</span>':''}</span><span class="m">${h.dr==='a'?'Anda: ':''}${E(h.tx||'')}</span><span class="m">${short(h.a)} · ${fdt(h.tp)}</span></span></button>`).join('')}</div>`:''}`}
 function rHg(){const a=APPS[HA],box=$('#p4');if(!a){box.innerHTML='<div class="em">Belum ada aplikasi di config.js.</div>';return}
  const keep={};if(rHg.last===HA&&!rHg.fresh)box.querySelectorAll('input[id],textarea[id]').forEach(i=>{if(i.type!=='file')keep[i.id]=i.value});rHg.last=HA;rHg.fresh=false;
  box.innerHTML=`<div class="flt">${APPS.map(x=>`<button class="chip${x.i===HA?' on':''}" data-a="ha" data-v="${x.i}" style="--c:${E(x.warna)}"><i></i>${E(x.nama)}</button>`).join('')}</div><div class="card">${!a.on?'<div class="em">Aplikasi ini belum tersambung.</div>':!a.loaded?'<div class="em">Memuat…</div>':ad(a).payForm(a)}</div>`;
@@ -480,14 +501,16 @@ const ACT={
  ystop:el=>twice(el,()=>{const{a,c}=DX;SYS.setL(a,c,{paket:(c.raw.langganan||{}).paket||'Langganan',sampai:TS(Date.now()-1000)}).then(()=>{cls();return after(a,'Langganan dihentikan')}).catch(e=>toast(fbe(e)))}),
  yrst:el=>twice(el,()=>{const{a,c}=DX;SYS.setL(a,c,null).then(()=>{cls();return after(a,'Kembali ke hitungan uji coba')}).catch(e=>toast(fbe(e)))}),
  sqx:el=>{const a=appOf(el.dataset.i);a.qr='';rHg()},
+ sqx2:el=>{const a=appOf(el.dataset.i);a.qr2='';rHg()},
  yqx:el=>{const a=appOf(el.dataset.i);a.qr='';rHg()},
  yqx2:el=>{const a=appOf(el.dataset.i);delete a.qp[el.dataset.k];rHg()},
- spsave:el=>{const a=appOf(el.dataset.i);busy(el,1);STD.paySave(a).then(()=>{toast('Harga & QRIS disimpan');rHg()}).catch(e=>toast(fbe(e))).finally(()=>busy(el,0))},
+ spsave:el=>{const a=appOf(el.dataset.i);busy(el,1);STD.paySave(a).then(()=>{toast('Harga & pembayaran disimpan');rHg()}).catch(e=>toast(fbe(e))).finally(()=>busy(el,0))},
  ypsave:el=>{const a=appOf(el.dataset.i);busy(el,1);SYS.paySave(a).then(()=>{toast('Pembayaran disimpan');rHg()}).catch(e=>toast(fbe(e))).finally(()=>busy(el,0))},
  pin:el=>pinDlg(+el.dataset.v),pinsave:el=>pinSave(+el.dataset.v),lock:()=>pinShow(),pinforgot:()=>{pinClr();LKON=false;$('#lk').classList.remove('on');logout()}
 };
 const FILE={
  sqr:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qr=await shrink(f,700,400000);rHg()}catch(e){toast(e.message)}},
+ sqr2:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qr2=await shrink(f,700,400000);rHg()}catch(e){toast(e.message)}},
  yqr:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qr=await shrink(f,520,280000);rHg()}catch(e){toast(e.message)}},
  yqr2:async(el,f)=>{const a=appOf(el.dataset.i);try{a.qp[el.dataset.k]=await shrink(f,520,180000);rHg()}catch(e){toast(e.message)}}
 };

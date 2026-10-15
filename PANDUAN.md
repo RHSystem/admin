@@ -11,13 +11,12 @@ Satu aplikasi admin untuk semua aplikasi Zui: Zui System dan ZUI KONTRAKTOR seka
 | `sw.js`, `manifest.webmanifest`, `icon-*.png` | Supaya bisa dipasang di HP/komputer |
 | `CNAME` | Alamat `admin.zuisystem.com` untuk GitHub Pages |
 
-## Firestore Rules: tidak perlu diubah
+## Firestore Rules
 
-Kedua project sudah mengizinkan akun `admin.zuisystem@gmail.com`:
-- Zui System: fungsi `sa()` (perusahaan, bantuan, sistem/bayar, resit)
-- ZUI KONTRAKTOR: fungsi `superAdmin()` (companies, subreqs, zconfig)
+- **Zui System**: tidak perlu diubah. Fungsi `sa()` sudah mengizinkan `admin.zuisystem@gmail.com`.
+- **ZUI KONTRAKTOR**: pakai `firestore.rules` dari ZUI KONTRAKTOR versi 13 (chat Langganan dan mata uang di permintaan bayar). Salin seluruh isinya ke Firebase Console project **kontraktor-zui** → Firestore Database → Rules → Publish. Fungsi `superAdmin()` tetap dipakai Zui Admin.
 
-Zui Admin baru memakai izin yang sama, jadi Zui Admin lama dan halaman "Admin langganan" di ZUI KONTRAKTOR tetap jalan berdampingan selama uji coba.
+Zui Admin lama dan halaman "Admin langganan" di ZUI KONTRAKTOR tetap jalan berdampingan selama uji coba.
 
 ## Langkah pasang
 
@@ -61,12 +60,12 @@ Supaya tidak perlu menekan Sambungkan sama sekali:
 - **Ringkasan**: pemasukan bulan ini dan 6 bulan terakhir (per aplikasi), jumlah pelanggan per status, daftar yang berakhir ≤ 7 hari.
 - **Antrean**: semua permintaan bayar dari semua aplikasi. *Aktifkan* (tekan dua kali), *Tolak* dengan alasan. Untuk Zui System ada *Periksa resit & chat* (pembacaan resit otomatis seperti Zui Admin lama).
 - **Pelanggan**: saring per aplikasi dan status, cari nama/email. Buka satu untuk perpanjang (+1/+6/+12 bulan), atur tanggal manual, gratis selamanya, hentikan, atau kembali ke percobaan.
-- **Pesan**: chat pelanggan Zui System.
-- **Harga**: harga, QRIS, WhatsApp dan catatan pembayaran per aplikasi.
+- **Pesan**: chat pelanggan Zui System dan ZUI KONTRAKTOR (termasuk foto bukti bayar). Dari chat Kontraktor bisa langsung Aktifkan/Tolak permintaan bayar perusahaan itu.
+- **Harga**: harga dan cara bayar per aplikasi. ZUI KONTRAKTOR punya dua set: Rupiah + QRIS dan Ringgit + DuitNow (perusahaan bermata uang Ringgit melihat harga Ringgit).
 - **Pengaturan**: status sambungan per project, notifikasi, PIN, tema, keluar.
 
 ### Catatan
-- **Pemasukan** dihitung dari pembayaran yang diaktifkan lewat antrean (Rupiah saja). Perpanjangan manual dari halaman pelanggan tidak tercatat sebagai pemasukan.
+- **Pemasukan** dihitung dari pembayaran yang diaktifkan lewat antrean. Angka utama dan grafik dalam Rupiah; Ringgit ditampilkan terpisah. Perpanjangan manual dari halaman pelanggan tidak tercatat sebagai pemasukan.
 - **Gratis selamanya** di Zui System disimpan sebagai paket "Gratis selamanya" sampai 31 Des 2099 (aturan Zui System hanya mengenal paket + tanggal). Di ZUI KONTRAKTOR memakai tanda `free`.
 - **Pemberitahuan** muncul selama Zui Admin terbuka, termasuk di tab latar belakang. Notifikasi saat aplikasi tertutup penuh butuh server (Cloud Functions, paket Blaze); belum dipakai karena masih di paket gratis Spark.
 - **Batas sesi**: 30 hari untuk aplikasi terpasang, 1 hari di peramban biasa.
