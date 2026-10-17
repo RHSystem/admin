@@ -1,6 +1,6 @@
 # ZUI ADMIN — panduan pasang (admin.zuisystem.com)
 
-Satu aplikasi admin untuk semua aplikasi Zui: Zui System dan ZUI KONTRAKTOR sekarang, aplikasi baru nanti.
+Satu aplikasi admin untuk semua aplikasi Zui: ZUI ERP (dulu bernama Zui System), ZUI KONTRAKTOR, dan ZUI JURNAL sekarang, aplikasi baru nanti.
 
 ## Isi folder
 
@@ -11,11 +11,25 @@ Satu aplikasi admin untuk semua aplikasi Zui: Zui System dan ZUI KONTRAKTOR seka
 | `sw.js`, `manifest.webmanifest`, `icon-*.png` | Supaya bisa dipasang di HP/komputer |
 | `CNAME` | Alamat `admin.zuisystem.com` untuk GitHub Pages |
 
+## Pembaruan 17 Okt 2026: ZUI JURNAL tersambung
+
+- Nama "Zui System" di Zui Admin diganti menjadi **ZUI ERP**, dengan alamat `https://erp.zuisystem.com`. Project Firebase tetap `zuisystem`.
+- **ZUI JURNAL** ditambahkan dengan pola `standar` (sama dengan ZUI KONTRAKTOR): percobaan 14 hari mulai 17 Okt 2026, tenggang 3 hari, lalu hanya-baca. Tiap pengguna Jurnal = satu "perusahaan" (ID = UID pengguna).
+- Paket Starter / Pro / Bisnis. Harga awalnya sama dengan bawaan ZUI KONTRAKTOR. **Atur harga ZUI JURNAL sendiri di Harga → ZUI JURNAL**, lalu simpan. Pengguna Jurnal melihat harga Rupiah + QRIS atau Ringgit + DuitNow sesuai pilihan mereka di halaman Langganan.
+- Pembagian fitur per paket diatur di `index.html` ZUI JURNAL (variabel `FEAT` dan `PKF`).
+
+### Langkah sekali untuk project jurnal-9f607
+1. Firebase Console project **jurnal-9f607** → Firestore Database → Rules → tempel `firestore.rules` dari paket ZUI JURNAL → **Publish**. Fungsi `superAdmin()` di dalamnya dipakai Zui Admin.
+2. Authentication → Sign-in method → aktifkan **Google** (dipakai Zui Admin untuk masuk ke project ini).
+3. Authentication → Settings → Authorized domains → tambahkan `admin.zuisystem.com`.
+4. (Opsional) Safelist Client ID project **zuisystem** di Google sign-in project jurnal-9f607, seperti langkah 4 di bawah, supaya tidak perlu menekan **Sambungkan**.
+5. Unggah ulang Zui Admin (file `config.js` berubah), lalu cek Pengaturan → Aplikasi tersambung: ZUI JURNAL **tersambung**.
+
 ## Firestore Rules
 
-- **Pembaruan 16 Okt 2026**: Zui System kini punya DuitNow QR untuk pelanggan Ringgit. Terbitkan ulang `firestore.rules` dari paket Zui System terbaru (kolom `duitnow`, `catatanMY`). Zui Admin lama di `zuisystem.com/admin/` sudah dihapus.
+- **Pembaruan 16 Okt 2026**: ZUI ERP kini punya DuitNow QR untuk pelanggan Ringgit. Terbitkan ulang `firestore.rules` dari paket ZUI ERP terbaru (kolom `duitnow`, `catatanMY`). Zui Admin lama di `zuisystem.com/admin/` sudah dihapus.
 
-- **Zui System**: tidak perlu diubah. Fungsi `sa()` sudah mengizinkan `admin.zuisystem@gmail.com`.
+- **ZUI ERP**: tidak perlu diubah. Fungsi `sa()` sudah mengizinkan `admin.zuisystem@gmail.com`.
 - **ZUI KONTRAKTOR**: pakai `firestore.rules` dari ZUI KONTRAKTOR versi 13 (chat Langganan dan mata uang di permintaan bayar). Salin seluruh isinya ke Firebase Console project **kontraktor-zui** → Firestore Database → Rules → Publish. Fungsi `superAdmin()` tetap dipakai Zui Admin.
 
 Zui Admin lama dan halaman "Admin langganan" di ZUI KONTRAKTOR tetap jalan berdampingan selama uji coba.
@@ -43,7 +57,7 @@ Firebase Console → Authentication → Settings → **Authorized domains** → 
 Tanpa langkah ini login Google ditolak dengan pesan "Domain ini belum diizinkan".
 
 ### 4. (Opsional) Login sekali untuk semua project
-Saat masuk, Zui Admin login ke Zui System lalu mencoba memakai login Google yang sama untuk ZUI KONTRAKTOR.
+Saat masuk, Zui Admin login ke ZUI ERP lalu mencoba memakai login Google yang sama untuk ZUI KONTRAKTOR.
 Bila project kontraktor menolaknya, Ringkasan menampilkan kartu **"ZUI KONTRAKTOR belum tersambung"**. Tekan **Sambungkan**, pilih akun admin. Ini cukup **sekali per perangkat**.
 
 Supaya tidak perlu menekan Sambungkan sama sekali:
@@ -54,21 +68,21 @@ Supaya tidak perlu menekan Sambungkan sama sekali:
 1. Buka `https://admin.zuisystem.com`, masuk dengan Google (`admin.zuisystem@gmail.com`).
 2. Pengaturan → Aplikasi tersambung: keduanya **tersambung**.
 3. Pengaturan → Atur PIN, lalu Aktifkan notifikasi.
-4. Dari akun pelanggan percobaan, kirim permintaan bayar di ZUI KONTRAKTOR dan pengajuan langganan di Zui System. Keduanya harus muncul di **Antrean** dengan bunyi dan angka di lonceng.
+4. Dari akun pelanggan percobaan, kirim permintaan bayar di ZUI KONTRAKTOR dan pengajuan langganan di ZUI ERP. Keduanya harus muncul di **Antrean** dengan bunyi dan angka di lonceng.
 5. Aktifkan satu, tolak satu. Cek di aplikasi pelanggan bahwa masa aktif berubah / alasan penolakan tampil.
 
 ## Isi aplikasi
 
 - **Ringkasan**: pemasukan bulan ini dan 6 bulan terakhir (per aplikasi), jumlah pelanggan per status, daftar yang berakhir ≤ 7 hari.
-- **Antrean**: semua permintaan bayar dari semua aplikasi. *Aktifkan* (tekan dua kali), *Tolak* dengan alasan. Untuk Zui System ada *Periksa resit & chat* (pembacaan resit otomatis seperti Zui Admin lama).
+- **Antrean**: semua permintaan bayar dari semua aplikasi. *Aktifkan* (tekan dua kali), *Tolak* dengan alasan. Untuk ZUI ERP ada *Periksa resit & chat* (pembacaan resit otomatis seperti Zui Admin lama).
 - **Pelanggan**: saring per aplikasi dan status, cari nama/email. Buka satu untuk perpanjang (+1/+6/+12 bulan), atur tanggal manual, gratis selamanya, hentikan, atau kembali ke percobaan.
-- **Pesan**: chat pelanggan Zui System dan ZUI KONTRAKTOR (termasuk foto bukti bayar). Dari chat Kontraktor bisa langsung Aktifkan/Tolak permintaan bayar perusahaan itu.
+- **Pesan**: chat pelanggan ZUI ERP dan ZUI KONTRAKTOR (termasuk foto bukti bayar). Dari chat Kontraktor bisa langsung Aktifkan/Tolak permintaan bayar perusahaan itu.
 - **Harga**: harga dan cara bayar per aplikasi. ZUI KONTRAKTOR punya dua set: Rupiah + QRIS dan Ringgit + DuitNow (perusahaan bermata uang Ringgit melihat harga Ringgit).
 - **Pengaturan**: status sambungan per project, notifikasi, PIN, tema, keluar.
 
 ### Catatan
 - **Pemasukan** dihitung dari pembayaran yang diaktifkan lewat antrean. Angka utama dan grafik dalam Rupiah; Ringgit ditampilkan terpisah. Perpanjangan manual dari halaman pelanggan tidak tercatat sebagai pemasukan.
-- **Gratis selamanya** di Zui System disimpan sebagai paket "Gratis selamanya" sampai 31 Des 2099 (aturan Zui System hanya mengenal paket + tanggal). Di ZUI KONTRAKTOR memakai tanda `free`.
+- **Gratis selamanya** di ZUI ERP disimpan sebagai paket "Gratis selamanya" sampai 31 Des 2099 (aturan ZUI ERP hanya mengenal paket + tanggal). Di ZUI KONTRAKTOR memakai tanda `free`.
 - **Pemberitahuan** muncul selama Zui Admin terbuka, termasuk di tab latar belakang. Notifikasi saat aplikasi tertutup penuh butuh server (Cloud Functions, paket Blaze); belum dipakai karena masih di paket gratis Spark.
 - **Batas sesi**: 30 hari untuk aplikasi terpasang, 1 hari di peramban biasa.
 
@@ -81,6 +95,6 @@ Pakai pola yang sama dengan ZUI KONTRAKTOR (`companies/{id}` dengan `plan`, `unt
 
 ## Setelah admin baru selesai diuji
 
-1. **Zui System**: hapus folder `admin/` dari situs Zui System.
+1. **ZUI ERP**: hapus folder `admin/` dari situs zuisystem.com.
 2. **ZUI KONTRAKTOR**: hapus halaman "Admin langganan" (menu `#zadmin`).
-3. **JANGAN hapus** fungsi `sa()` di rules Zui System maupun `superAdmin()` di rules ZUI KONTRAKTOR. Zui Admin baru bergantung pada keduanya.
+3. **JANGAN hapus** fungsi `sa()` di rules ZUI ERP maupun `superAdmin()` di rules ZUI KONTRAKTOR. Zui Admin baru bergantung pada keduanya.
