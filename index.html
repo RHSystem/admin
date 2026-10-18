@@ -152,7 +152,7 @@ dialog::backdrop{background:rgba(5,8,10,.6)}dialog h2{margin:0 0 4px;font:600 20
 /* =================== dasar =================== */
 const $=s=>document.querySelector(s);
 const E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const CF=window.ZUI_ADMIN||{},ADMIN=String(CF.adminEmail||'admin.zuisystem@gmail.com').trim().toLowerCase(),DAY=864e5,VER='1.3';
+const CF=window.ZUI_ADMIN||{},ADMIN=String(CF.adminEmail||'admin.zuisystem@gmail.com').trim().toLowerCase(),DAY=864e5,VER='1.4';
 const APPS=(CF.apps||[]).filter(a=>a&&a.firebase&&a.firebase.apiKey&&a.id).map((a,i)=>Object.assign({warna:'#2FA8D8',jenis:'standar',nama:a.id},a,{i,fa:null,fs:null,ready:false,on:false,err:'',lerr:'',loading:false,loaded:false,co:[],q:[],rev:[],sub:[],bh:[],pay:null,un:[],qf:0,bf:0,qr:null,qp:null}));
 const pad=n=>String(n).padStart(2,'0'),MB=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const iso=m=>{const d=new Date(m);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
@@ -188,7 +188,7 @@ const KL={free:'Gratis selamanya',paid:'Berbayar',trial:'Percobaan',grace:'Tengg
 function stPill(c){const l=left(c);if(c.kind==='free')return'<span class="pill ok">gratis</span>';if(c.kind==='expired')return'<span class="pill bad">habis</span>';if(c.kind==='grace')return'<span class="pill bad">tenggang '+Math.max(0,c.graceLeft||0)+' hari</span>';
  const t=c.kind==='trial'?'percobaan · ':'';return`<span class="pill ${l<=7?'am':'ok'}">${t}${l} hari</span>`}
 
-/* =================== pola "standar" (ZUI KONTRAKTOR, ZUI JURNAL dan aplikasi baru) =================== */
+/* =================== pola "standar" (ZUI KONTRAKTOR, ZUI JURNAL, ZUI TO-DO dan aplikasi baru) =================== */
 const PLN={starter:'Starter',pro:'Pro',business:'Bisnis'},PORD=['starter','pro','business'];
 const DEFP={starter:{1:79000,6:395000,12:790000},pro:{1:149000,6:745000,12:1490000},business:{1:299000,6:1495000,12:2990000}};
 const DEFPM={starter:{1:21,6:105,12:210},pro:{1:39,6:195,12:390},business:{1:79,6:395,12:790}};
@@ -232,10 +232,10 @@ const STD={
   const tbl=(px,pr,df)=>`<div class="sx"><table class="tb"><thead><tr><th>Paket</th><th>1 bulan</th><th>6 bulan</th><th>12 bulan</th></tr></thead><tbody>${PORD.map(p=>`<tr><td>${PLN[p]}</td>${[1,6,12].map(m=>`<td><input class="ni" id="${px}_${p}_${m}" inputmode="decimal" value="${+(((pr||{})[p]||{})[m]||(df[p]||{})[m]||0)}" style="min-width:78px;width:100%;text-align:right;margin:0;padding:7px 6px;font-size:14px"></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   const img=(v,nm,set,clr)=>`<div class="qri">${v?`<img src="${E(v)}" alt="${nm}">`:`<span class="m">Belum ada ${nm}.</span>`}<label class="b" style="cursor:pointer">Pilih gambar ${nm}<input type="file" accept="image/*" data-a="${set}" data-i="${a.i}" hidden></label>${v?`<button class="b" data-a="${clr}" data-i="${a.i}">Hapus</button>`:''}</div>`;
   return`<p class="m">Tampil di halaman Langganan ${E(a.nama)}. Perusahaan bermata uang Ringgit melihat harga Ringgit dan DuitNow; selain itu Rupiah dan QRIS.</p>
-  <div class="h3">Rupiah · QRIS</div>${tbl('sp',pc.prices,DEFP)}
+  <div class="h3">Rupiah · QRIS</div>${tbl('sp',pc.prices,a.hargaAwal||DEFP)}
   <label class="fl">Catatan pembayaran Rupiah (mis. nama rekening usaha)<textarea class="ni" id="snt" rows="2" maxlength="500">${E(pc.note||'')}</textarea></label>
   ${img(qr,'QRIS','sqr','sqx')}
-  <div class="h3">Ringgit · DuitNow</div>${tbl('sm',pc.pricesMYR,DEFPM)}
+  <div class="h3">Ringgit · DuitNow</div>${tbl('sm',pc.pricesMYR,a.hargaAwalMYR||DEFPM)}
   <label class="fl">Catatan pembayaran Ringgit<textarea class="ni" id="snm" rows="2" maxlength="500">${E(pc.noteMYR||'')}</textarea></label>
   ${img(dn,'DuitNow QR','sqr2','sqx2')}
   <label class="fl">WhatsApp admin (cadangan, untuk bukti bayar)<input class="ni" id="swa" inputmode="tel" maxlength="20" placeholder="62812…" value="${E(pc.wa||'')}"></label>

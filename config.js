@@ -3,7 +3,7 @@
 
    jenis:
      "zuisystem" = pola ZUI ERP (dulu Zui System): perusahaan/{id}.langganan, bantuan, sistem/bayar
-     "standar"   = pola ZUI KONTRAKTOR dan ZUI JURNAL: companies/{id} plan/until/free, subreqs, zconfig/pay
+     "standar"   = pola ZUI KONTRAKTOR, ZUI JURNAL dan ZUI TO-DO: companies/{id} plan/until/free, subreqs, zconfig/pay
    Aplikasi Zui baru sebaiknya memakai pola "standar" agar cukup menambah satu blok di bawah.
 
    Aplikasi PERTAMA di daftar dipakai untuk tombol "Masuk dengan Google". */
@@ -62,6 +62,28 @@ window.ZUI_ADMIN = {
         storageBucket: "jurnal-9f607.firebasestorage.app",
         messagingSenderId: "717493302320",
         appId: "1:717493302320:web:6d1189f8bd7956e9e269f5"
+      }
+    },
+    {
+      id: "tdo",
+      nama: "ZUI TO-DO",
+      jenis: "standar",
+      warna: "#6C8CFF",
+      url: "https://todo.zuisystem.com",
+      // samakan dengan SUBC di index.html dan firestore.rules ZUI TO-DO
+      percobaanHari: 14,
+      tenggangHari: 3,
+      mulaiPercobaan: "2026-10-18",
+      // harga awal (dipakai sampai Anda menyimpan harga di menu Harga). Harus sama dengan DEFP/DEFPM di index.html ZUI TO-DO
+      hargaAwal:    { starter: { 1: 19000, 6: 95000, 12: 190000 }, pro: { 1: 29000, 6: 145000, 12: 290000 }, business: { 1: 49000, 6: 245000, 12: 490000 } },
+      hargaAwalMYR: { starter: { 1: 5, 6: 25, 12: 50 }, pro: { 1: 8, 6: 40, 12: 80 }, business: { 1: 13, 6: 65, 12: 130 } },
+      firebase: {
+        apiKey: "AIzaSyBgI_elQYC1ubDVtaxTEBiGUxCHc7-xjlQ",
+        authDomain: "zui-todo.firebaseapp.com",
+        projectId: "zui-todo",
+        storageBucket: "zui-todo.firebasestorage.app",
+        messagingSenderId: "661168023257",
+        appId: "1:661168023257:web:07a176ea382c8b9fb6c0c8"
       }
     }
 

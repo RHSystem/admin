@@ -1,6 +1,6 @@
 # ZUI ADMIN — panduan pasang (admin.zuisystem.com)
 
-Satu aplikasi admin untuk semua aplikasi Zui: ZUI ERP (dulu bernama Zui System), ZUI KONTRAKTOR, dan ZUI JURNAL sekarang, aplikasi baru nanti.
+Satu aplikasi admin untuk semua aplikasi Zui: ZUI ERP (dulu bernama Zui System), ZUI KONTRAKTOR, ZUI JURNAL, dan ZUI TO-DO sekarang, aplikasi baru nanti.
 
 ## Isi folder
 
@@ -10,6 +10,20 @@ Satu aplikasi admin untuk semua aplikasi Zui: ZUI ERP (dulu bernama Zui System),
 | `config.js` | Daftar aplikasi Zui + kunci Firebase masing-masing. Aplikasi baru cukup ditambah satu blok di sini |
 | `sw.js`, `manifest.webmanifest`, `icon-*.png` | Supaya bisa dipasang di HP/komputer |
 | `CNAME` | Alamat `admin.zuisystem.com` untuk GitHub Pages |
+
+## Pembaruan 18 Okt 2026: ZUI TO-DO tersambung (Zui Admin 1.4)
+
+- **ZUI TO-DO** ditambahkan di `config.js` dengan pola `standar` (sama dengan ZUI KONTRAKTOR dan ZUI JURNAL): percobaan 14 hari mulai 18 Okt 2026, tenggang 3 hari, lalu tugas hanya-baca. Tiap pengguna To-Do = satu "perusahaan" (ID = UID pengguna).
+- Paket Starter / Pro / Bisnis dengan **harga awal khusus To-Do** (lebih murah dari Kontraktor): Rp 19.000 / 29.000 / 49.000 per bulan, Rp 95.000 / 145.000 / 245.000 per 6 bulan, Rp 190.000 / 290.000 / 490.000 per tahun; Ringgit RM 5 / 8 / 13 per bulan. Ubah di **Harga → ZUI TO-DO**, lalu simpan (QRIS, DuitNow, catatan, WhatsApp juga di sana).
+- Fitur baru di Zui Admin: setiap aplikasi bisa punya harga awal sendiri lewat `hargaAwal` dan `hargaAwalMYR` di `config.js`.
+- Antrean menerima permintaan bayar To-Do, Pesan menerima chat dari halaman **Kelola langganan** dan **Umpan balik → Chat dengan admin** di To-Do (termasuk foto bukti bayar).
+
+### Langkah sekali untuk project zui-todo
+1. Firebase Console project **zui-todo** → Firestore Database → Rules → tempel `firestore.rules` dari paket ZUI TO-DO 26.01 → **Publish**.
+2. Authentication → Sign-in method → pastikan **Google** aktif.
+3. Authentication → Settings → Authorized domains → tambahkan `admin.zuisystem.com` (dan domain To-Do, mis. `todo.zuisystem.com`).
+4. (Opsional) Safelist Client ID project **zuisystem** di Google sign-in project zui-todo (langkah 4 di bawah) supaya tidak perlu menekan **Sambungkan**.
+5. Unggah ulang Zui Admin (file `index.html`, `config.js`, `sw.js` berubah), lalu cek Pengaturan → Aplikasi tersambung: ZUI TO-DO **tersambung**.
 
 ## Pembaruan 17 Okt 2026: ZUI JURNAL tersambung
 
@@ -76,7 +90,7 @@ Supaya tidak perlu menekan Sambungkan sama sekali:
 - **Ringkasan**: pemasukan bulan ini dan 6 bulan terakhir (per aplikasi), jumlah pelanggan per status, daftar yang berakhir ≤ 7 hari.
 - **Antrean**: semua permintaan bayar dari semua aplikasi. *Aktifkan* (tekan dua kali), *Tolak* dengan alasan. Untuk ZUI ERP ada *Periksa resit & chat* (pembacaan resit otomatis seperti Zui Admin lama).
 - **Pelanggan**: saring per aplikasi dan status, cari nama/email. Buka satu untuk perpanjang (+1/+6/+12 bulan), atur tanggal manual, gratis selamanya, hentikan, atau kembali ke percobaan.
-- **Pesan**: chat pelanggan ZUI ERP dan ZUI KONTRAKTOR (termasuk foto bukti bayar). Dari chat Kontraktor bisa langsung Aktifkan/Tolak permintaan bayar perusahaan itu.
+- **Pesan**: chat pelanggan ZUI ERP, ZUI KONTRAKTOR, ZUI JURNAL dan ZUI TO-DO (termasuk foto bukti bayar). Dari chat Kontraktor bisa langsung Aktifkan/Tolak permintaan bayar perusahaan itu.
 - **Harga**: harga dan cara bayar per aplikasi. ZUI KONTRAKTOR punya dua set: Rupiah + QRIS dan Ringgit + DuitNow (perusahaan bermata uang Ringgit melihat harga Ringgit).
 - **Pengaturan**: status sambungan per project, notifikasi, PIN, tema, keluar.
 
